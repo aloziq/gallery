@@ -118,7 +118,7 @@ class ProjectController extends Controller
             ->orderByDesc('evaluations_count')
             ->orderBy('display_order')
             ->limit(10)
-            ->get(['id', 'name', 'evaluations_count', 'slug', 'cover_image', 'department', 'category', 'display_order']);
+            ->get(['id', 'name', 'evaluations_count', 'evaluations_avg_rating', 'slug', 'cover_image', 'department', 'category', 'display_order']);
 
         $top5Ids = $topProjects->take(5)->pluck('id');
         $top5Names = $topProjects->take(5)->pluck('name', 'id');

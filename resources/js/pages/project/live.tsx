@@ -49,6 +49,7 @@ export default function LiveDashboard({ topProjects, chartData }: Props) {
             layout: {
                 background: { type: ColorType.Solid, color: 'transparent' },
                 textColor,
+                attributionLogo: false,
             },
             grid: {
                 vertLines: { color: gridColor },
@@ -100,55 +101,13 @@ export default function LiveDashboard({ topProjects, chartData }: Props) {
     }, [chartData, topProjects]);
 
     return (
-        <div className="min-h-screen w-full bg-background text-foreground font-sans" dir="rtl">
+        <div className="min-h-screen w-full flex flex-col justify-center bg-background text-foreground font-sans" dir="rtl">
             <Head title="Live Evaluations Leaderboard" />
 
-            <header className="border-b border-border/40 bg-background/95 backdrop-blur-sm">
-                <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <Link
-                        href={home()}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                        <ArrowRight className="size-4" />
-                        العودة للمعرض
-                    </Link>
-
-                    {/* Time-Range Controls */}
-                    <div className="flex items-center gap-1 rounded-md bg-muted/50 p-1" dir="ltr">
-                        {['1m', '15m', '1H', '12H', '1D', '7D', 'All'].map((rangeOption) => {
-                            // Extract current range from URL manually since it's not a prop
-                            const currentRange = new URLSearchParams(window.location.search).get('range') || '15m';
-                            const isActive = currentRange === rangeOption;
-                            return (
-                                <Link
-                                    key={rangeOption}
-                                    href={`/live?range=${rangeOption}`}
-                                    preserveScroll
-                                    className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                                        isActive
-                                            ? 'bg-background text-foreground shadow-sm'
-                                            : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                                    }`}
-                                >
-                                    {rangeOption}
-                                </Link>
-                            );
-                        })}
-                    </div>
-                </div>
-            </header>
-
-            <main className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 py-8 sm:px-6 lg:flex-row lg:px-8">
-                {/* Chart Section - Lots of breathing room, no surrounding cards */}
-                <section className="flex-1">
+            <main className="mx-auto flex w-full max-w-7xl flex-col items-center gap-12 px-4 py-8 sm:px-6 lg:flex-row lg:px-8">
+                {/* Chart Section - Dominant but minimized slightly */}
+                <section className="w-full lg:w-7/12">
                     <div className="mb-6 flex items-center justify-between">
-                        <h1 className="text-2xl font-bold tracking-tight">
-                            التقييمات المباشرة
-                        </h1>
-                        <span className="relative flex h-3 w-3">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-                            <span className="relative inline-flex h-3 w-3 rounded-full bg-orange-500"></span>
-                        </span>
                     </div>
 
                     <div className="relative h-[500px] w-full" dir="ltr">
@@ -157,47 +116,62 @@ export default function LiveDashboard({ topProjects, chartData }: Props) {
                     </div>
                 </section>
 
-                {/* Leaderboard Section - Stripped down flat list */}
-                <section className="w-full lg:w-80">
-                    <div className="mb-6 flex items-center gap-3">
-                        <Trophy className="size-5 text-yellow-500" />
-                        <h2 className="text-lg font-bold tracking-tight">
-                            أفضل 10 مشاريع
-                        </h2>
-                    </div>
+                {/* Leaderboard Section - Expanded table view */}
+                <section className="w-full lg:w-5/12 flex flex-col">
+                    
 
-                    <ul ref={listRef} className="flex flex-col gap-1">
-                        {topProjects.map((project, index) => {
-                            const isTop5 = index < 5;
-                            const color = isTop5 ? COLORS[index] : 'currentColor';
-                            
-                            return (
-                                <li
-                                    key={project.id}
-                                    className="flex items-center gap-4 py-3 border-b border-border/40 last:border-0"
-                                >
-                                    <div 
-                                        className="flex shrink-0 items-center justify-center text-xs font-bold w-6"
-                                        style={{ 
-                                            color: isTop5 ? color : 'var(--muted-foreground)',
-                                        }}
+                    <div className="flex-1 rounded-xl bg-transparent overflow-hidden flex flex-col">
+                        {/* <div className="flex items-center gap-4 py-3 px-4 text-xs font-semibold text-muted-foreground border-b border-border/40 bg-transparent">
+                            <div className="w-8 text-center shrink-0">الترتيب</div>
+                            <div className="flex-1 truncate">المشروع</div>
+                            <div className="w-16 text-center shrink-0">النقاط</div>
+                            <div className="w-16 text-center shrink-0">المتوسط</div>
+                        </div> */}
+                        <ul ref={listRef} className="flex flex-col flex-1 overflow-hidden">
+                            {topProjects.map((project, index) => {
+                                const currentRank = index + 1;
+                                const isTop5 = index < 5;
+                                const color = isTop5 ? COLORS[index] : 'currentColor';
+                                
+                                return (
+                                    <li
+                                        key={project.id}
+                                        className="flex items-center gap-4 px-4 py-3 border-b border-border/40 last:border-0 hover:bg-muted/30 transition-colors"
                                     >
-                                        {index + 1}
-                                    </div>
-                                    <div className="flex-1 truncate">
-                                        <h3 className={`truncate ${isTop5 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
-                                            {project.name}
-                                        </h3>
-                                    </div>
-                                    <div className="flex shrink-0 items-center">
-                                        <span className="font-mono text-sm font-bold text-foreground">
-                                            {project.evaluations_count.toLocaleString()}
-                                        </span>
-                                    </div>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                                        <div className="w-8 flex shrink-0 items-center justify-center">
+                                            <span className={`text-sm font-bold ${isTop5 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                                {currentRank}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex-1 truncate flex items-center gap-2">
+                                            {isTop5 && (
+                                                <div 
+                                                    className="h-2 w-2 rounded-full shrink-0" 
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                            )}
+                                            <h3 className={`truncate text-sm ${isTop5 ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'}`}>
+                                                {project.name}
+                                            </h3>
+                                        </div>
+
+                                        <div className="w-16 flex shrink-0 items-center justify-center">
+                                            <span className="font-mono text-sm font-bold text-foreground">
+                                                {project.evaluations_count.toLocaleString()}
+                                            </span>
+                                        </div>
+
+                                        <div className="w-16 flex shrink-0 items-center justify-center">
+                                            <span className={`text-sm font-medium ${Number(project.evaluations_avg_rating) >= 4.5 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                                                {project.evaluations_avg_rating ? Number(project.evaluations_avg_rating).toFixed(1) : '-'}
+                                            </span>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
                 </section>
             </main>
         </div>
