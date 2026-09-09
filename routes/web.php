@@ -29,6 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     (SELECT count(DISTINCT visitor_token) FROM evaluations) AS total_visitors,
                     (SELECT round(CAST(avg(rating) AS numeric), 2) FROM evaluations) AS average_rating
             ');
+
             return (array) $result;
         });
 
@@ -47,6 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Project Management Routes
     Route::get('projects/export', [App\Http\Controllers\Admin\ProjectController::class, 'export'])->name('admin.projects.export');
+    Route::get('projects/print-qrs', [App\Http\Controllers\Admin\ProjectController::class, 'printQrs'])->name('admin.projects.print-qrs');
     Route::resource('projects', App\Http\Controllers\Admin\ProjectController::class)->names('admin.projects');
 
     // QR Code generation route

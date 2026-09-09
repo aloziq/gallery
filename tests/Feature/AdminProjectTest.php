@@ -249,3 +249,55 @@ test('guests cannot export projects', function () {
     $this->get(route('admin.projects.export'))
         ->assertRedirect(route('login'));
 });
+
+// ────────────────────────────────────────────────────────
+// PRINT QRS
+// ────────────────────────────────────────────────────────
+
+test('guests cannot access print qrs page', function () {
+    $this->get(route('admin.projects.print-qrs'))
+        ->assertRedirect(route('login'));
+});
+
+test('authenticated users can view print qrs page with male projects by default', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['name' => 'Male Project', 'gender' => 'male']);
+    Project::factory()->create(['name' => 'Female Project', 'gender' => 'female']);
+
+    $response = $this->actingAs($user)->get(route('admin.projects.print-qrs'));
+
+    $response->assertOk();
+    $response->assertInertia(
+        fn ($page) => $page
+            ->component('admin/projects/print-qrs')
+            ->where('currentGender', 'male')
+            ->has('projects', 1)
+            ->where('projects.0.name', 'Male Project')
+            ->where('counts.male', 1)
+            ->where('counts.female', 1)
+            ->where('counts.all', 2)
+    );
+});
+
+test('authenticated users can filter print qrs by female or all', function () {
+    $user = User::factory()->create();
+    Project::factory()->create(['name' => 'Male Project', 'gender' => 'male']);
+    Project::factory()->create(['name' => 'Female Project', 'gender' => 'female']);
+
+    $responseFemale = $this->actingAs($user)->get(route('admin.projects.print-qrs', ['gender' => 'female']));
+    $responseFemale->assertOk();
+    $responseFemale->assertInertia(
+        fn ($page) => $page
+            ->where('currentGender', 'female')
+            ->has('projects', 1)
+            ->where('projects.0.name', 'Female Project')
+    );
+
+    $responseAll = $this->actingAs($user)->get(route('admin.projects.print-qrs', ['gender' => 'all']));
+    $responseAll->assertOk();
+    $responseAll->assertInertia(
+        fn ($page) => $page
+            ->where('currentGender', 'all')
+            ->has('projects', 2)
+    );
+});

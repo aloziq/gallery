@@ -1,12 +1,95 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Download, Edit2, Plus, QrCode, Trash2 } from 'lucide-react';
+import { Download, Edit2, Plus, Printer, QrCode, Trash2 } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'لوحة التحكم', href: '/dashboard' }, { title: 'إدارة المشاريع', href: '/projects' }];
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'لوحة التحكم', href: '/dashboard' },
+    { title: 'إدارة المشاريع', href: '/projects' },
+];
 
 export default function Index({ projects }: { projects: any }) {
-    const remove = (id: number) => confirm('هل أنت متأكد من حذف هذا المشروع نهائياً؟') && router.delete(`/projects/${id}`);
-    return <AppLayout breadcrumbs={breadcrumbs}><Head title="إدارة المشاريع — المعرض التقني" /><div className="flex flex-col font-sans w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12" dir="rtl"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"><div><h1 className="text-[28px] font-bold tracking-tight text-foreground font-heading">إدارة المشاريع</h1><p className="text-[14px] text-secondary-foreground mt-1">سجل المشاريع المشاركة في المعرض والتحكم بحالتها.</p></div><div className="flex items-center gap-3"><Button variant="outline" size="sm" asChild><a href="/projects/export" target="_blank" rel="noopener noreferrer"><Download className="w-3.5 h-3.5" /> تصدير النتائج</a></Button><Button asChild size="sm"><Link href="/projects/create"><Plus className="w-3.5 h-3.5" /> إضافة مشروع</Link></Button></div></div><div className="bg-card rounded-[24px] p-2 sm:p-6 shadow-sm border border-border/40 overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-right text-sm"><thead><tr><th className="py-3 px-4">المشروع</th><th className="py-3 px-4">الفئة</th><th className="py-3 px-4">الحالة</th><th className="py-3 px-4">التقييمات</th><th className="py-3 px-4">الإجراءات</th></tr></thead><tbody>{projects.data?.map((project: any) => <tr key={project.id} className="border-t border-border/40 hover:bg-muted/30"><td className="py-3 px-4"><Link href={`/p/${project.slug}`} className="font-semibold text-primary hover:underline">{project.name}</Link></td><td className="py-3 px-4">{project.category || '—'}</td><td className="py-3 px-4">{project.is_published ? <span className="inline-flex px-2 py-1 rounded-full bg-success/10 text-success text-xs font-medium">منشور</span> : <span className="inline-flex px-2 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium">مسودة</span>}</td><td className="py-3 px-4">{project.evaluations_count} تقييم</td><td className="py-3 px-4"><div className="flex items-center gap-3"><Link href={`/projects/${project.id}/qr`} title="رمز الاستجابة السريع" className="text-secondary-foreground hover:text-foreground transition-colors"><QrCode className="w-4 h-4" /></Link><Link href={`/projects/${project.id}/edit`} title="تعديل" className="text-secondary-foreground hover:text-foreground transition-colors"><Edit2 className="w-4 h-4" /></Link><button onClick={() => remove(project.id)} title="حذف" className="text-destructive/70 hover:text-destructive transition-colors"><Trash2 className="w-4 h-4" /></button></div></td></tr>)}</tbody></table></div></div></div></AppLayout>;
+    const remove = (id: number) =>
+        confirm('هل أنت متأكد من حذف هذا المشروع نهائياً؟') && router.delete(`/projects/${id}`);
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="إدارة المشاريع — المعرض التقني" />
+            <div className="flex flex-col font-sans w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12" dir="rtl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-[28px] font-bold tracking-tight text-foreground font-heading">إدارة المشاريع</h1>
+                        <p className="text-[14px] text-secondary-foreground mt-1">سجل المشاريع المشاركة في المعرض والتحكم بحالتها.</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/projects/print-qrs">
+                                <Printer className="w-3.5 h-3.5" /> طباعة رموز QR
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                            <a href="/projects/export" target="_blank" rel="noopener noreferrer">
+                                <Download className="w-3.5 h-3.5" /> تصدير النتائج
+                            </a>
+                        </Button>
+                        <Button asChild size="sm">
+                            <Link href="/projects/create">
+                                <Plus className="w-3.5 h-3.5" /> إضافة مشروع
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="bg-card rounded-[24px] p-2 sm:p-6 shadow-sm border border-border/40 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right text-sm">
+                            <thead>
+                                <tr>
+                                    <th className="py-3 px-4">المشروع</th>
+                                    <th className="py-3 px-4">الفئة</th>
+                                    <th className="py-3 px-4">الحالة</th>
+                                    <th className="py-3 px-4">التقييمات</th>
+                                    <th className="py-3 px-4">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {projects.data?.map((project: any) => (
+                                    <tr key={project.id} className="border-t border-border/40 hover:bg-muted/30">
+                                        <td className="py-3 px-4">
+                                            <Link href={`/p/${project.slug}`} className="font-semibold text-primary hover:underline">
+                                                {project.name}
+                                            </Link>
+                                        </td>
+                                        <td className="py-3 px-4">{project.category || '—'}</td>
+                                        <td className="py-3 px-4">
+                                            {project.is_published ? (
+                                                <span className="inline-flex px-2 py-1 rounded-full bg-success/10 text-success text-xs font-medium">منشور</span>
+                                            ) : (
+                                                <span className="inline-flex px-2 py-1 rounded-full bg-warning/10 text-warning text-xs font-medium">مسودة</span>
+                                            )}
+                                        </td>
+                                        <td className="py-3 px-4">{project.evaluations_count} تقييم</td>
+                                        <td className="py-3 px-4">
+                                            <div className="flex items-center gap-3">
+                                                <Link href={`/projects/${project.id}/qr`} title="رمز الاستجابة السريع" className="text-secondary-foreground hover:text-foreground transition-colors">
+                                                    <QrCode className="w-4 h-4" />
+                                                </Link>
+                                                <Link href={`/projects/${project.id}/edit`} title="تعديل" className="text-secondary-foreground hover:text-foreground transition-colors">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </Link>
+                                                <button onClick={() => remove(project.id)} title="حذف" className="text-destructive/70 hover:text-destructive transition-colors">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
+    );
 }

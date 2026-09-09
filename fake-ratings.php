@@ -2,11 +2,12 @@
 
 require __DIR__.'/vendor/autoload.php';
 $app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
-use App\Models\Project;
 use App\Models\Evaluation;
+use App\Models\Project;
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Str;
 
 $projects = Project::where('is_published', true)->pluck('id');
@@ -24,16 +25,16 @@ while (time() < $endTime) {
     $projectId = $projects->random();
     $visitorToken = Str::uuid()->toString();
     $rating = rand(1, 5);
-    
+
     // Add evaluation
     Evaluation::create([
         'project_id' => $projectId,
         'visitor_token' => $visitorToken,
         'rating' => $rating,
     ]);
-    
+
     echo "Rated project ID: $projectId with rating $rating\n";
-    
+
     // Sleep for random time between 0.5 to 2.5 seconds
     usleep(rand(50000, 60000));
 }

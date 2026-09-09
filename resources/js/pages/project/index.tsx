@@ -1,6 +1,8 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, LayoutGrid, Maximize2, Star } from 'lucide-react';
 
+import { ProjectCover } from '@/components/project-cover';
+
 function ProjectCard({ project, rank, layoutClasses }: { project: any, rank: number, layoutClasses: string }) {
     const category = project.category || 'مشروع';
     
@@ -20,17 +22,13 @@ function ProjectCard({ project, rank, layoutClasses }: { project: any, rank: num
             <div className="flex flex-col h-full w-full bg-card rounded-2xl overflow-hidden border border-border shadow-xl">
                 {/* Image Container */}
                 <Link href={`/p/${project.slug}`} className="relative block h-[55%] bg-muted overflow-hidden shrink-0">
-                    {project.cover_image ? (
-                        <img
-                            src={`/storage/${project.cover_image}`}
-                            alt={project.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground bg-muted">
-                            <span className="font-mono text-xs opacity-50">لا توجد صورة</span>
-                        </div>
-                    )}
+                    <ProjectCover
+                        src={project.cover_image}
+                        alt={project.name}
+                        category={project.category}
+                        department={project.department}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                     
                     {/* Rating Badge */}
                     <div className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full border border-border/50 bg-background/90 px-2 py-0.5 shadow-sm backdrop-blur-md">

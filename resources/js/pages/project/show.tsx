@@ -1,18 +1,25 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowRight, CheckCircle, ExternalLink, Star, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, ExternalLink, Star, Loader2, User } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { home } from '@/routes';
 import { evaluate } from '@/routes/project';
+import { ProjectCover } from '@/components/project-cover';
 
 type ProjectMember = {
     id: number;
     name: string;
-    role: string | null;
+    role?: string | null;
+    photo?: string | null;
+    pivot?: {
+        role?: string | null;
+        photo?: string | null;
+    };
 };
 
 type Project = {
+    id: number;
     name: string;
     slug: string;
     category: string | null;
@@ -31,6 +38,24 @@ type Flash = {
     error?: string;
 };
 
+function formatRole(role?: string | null, isEng?: boolean) {
+    if (!role) return null;
+    if (!isEng) return role;
+    const r = role.toLowerCase();
+    if (r.includes('قائد') || r.includes('lead')) return 'Team Leader';
+    if (r.includes('عضو') || r.includes('member')) return 'Team Member';
+    if (r.includes('مشرف') || r.includes('supervisor')) return 'Supervisor';
+    return role;
+}
+
+function getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return (parts[0]?.[0] || 'U').toUpperCase();
+}
+
 export default function Show({
     project,
     userRating,
@@ -43,6 +68,9 @@ export default function Show({
     const [hoverRating, setHoverRating] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { flash } = usePage().props as { flash?: Flash };
+
+    // Detect if the project is primarily in English
+    const isEng = !(/[\u0600-\u06FF]/.test(project.name));
 
     const submitRating = () => {
         if (rating === 0) {
@@ -64,9 +92,9 @@ export default function Show({
     return (
         <div
             className="min-h-screen w-full bg-background pb-16 font-sans text-foreground"
-            dir="rtl"
+            dir={isEng ? 'ltr' : 'rtl'}
         >
-            <Head title={`${project.name} - المعرض التقني`} />
+            <Head title={`${project.name} - ${isEng ? 'Tech Exhibition' : 'المعرض التقني'}`} />
             
             {/* Header */}
             <header className="sticky top-0 z-30 border-b border-border/70 bg-background/95 backdrop-blur-sm">
@@ -75,18 +103,27 @@ export default function Show({
                         href={home.url()}
                         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                     >
-                        <ArrowRight className="size-4" />
-                        دليل المعرض
+                        {isEng ? (
+                            <>
+                                <ArrowLeft className="size-4" />
+                                <span>Exhibition Directory</span>
+                            </>
+                        ) : (
+                            <>
+                                <ArrowRight className="size-4" />
+                                <span>دليل المعرض</span>
+                            </>
+                        )}
                     </Link>
                 </div>
             </header>
 
             <main className="mx-auto w-full max-w-5xl px-4 pt-12 pb-24 sm:px-6 lg:px-8">
                 {/* Hero Section */}
-                <section className="mb-16 flex flex-col items-center text-center">
+                <section className="mb-12 flex flex-col items-center text-center">
                     <div className="mb-6 flex flex-wrap justify-center items-center gap-3">
                         <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                            {project.department || 'المعرض التقني'}
+                            {project.department || (isEng ? 'Tech Exhibition' : 'المعرض التقني')}
                         </span>
                         {project.category && (
                             <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -104,16 +141,16 @@ export default function Show({
                     )}
                 </section>
 
-                {/* Featured Media */}
-                {project.cover_image && (
-                    <div className="mb-16 w-full overflow-hidden rounded-3xl border border-border shadow-2xl">
-                        <img
-                            src={`/storage/${project.cover_image}`}
-                            alt={project.name}
-                            className="w-full aspect-video md:aspect-[21/9] object-cover"
-                        />
-                    </div>
-                )}
+                {/* Featured Media / Cover Banner */}
+                <div className="mb-16 w-full overflow-hidden rounded-3xl border border-border shadow-2xl">
+                    <ProjectCover
+                        src={project.cover_image}
+                        alt={project.name}
+                        category={project.category}
+                        department={project.department}
+                        className="aspect-video md:aspect-[21/9]"
+                    />
+                </div>
 
                 {/* Split Layout Grid */}
                 <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
@@ -122,7 +159,7 @@ export default function Show({
                         {project.description && project.description !== project.short_description && (
                             <section>
                                 <h2 className="mb-6 font-heading text-3xl font-bold text-foreground">
-                                    عن المشروع
+                                    {isEng ? 'About the Project' : 'عن المشروع'}
                                 </h2>
                                 <div className="prose prose-neutral dark:prose-invert max-w-none text-lg leading-loose text-muted-foreground">
                                     <p className="whitespace-pre-line">{project.description}</p>
@@ -143,14 +180,16 @@ export default function Show({
                                         className="flex items-center justify-center gap-2"
                                     >
                                         <ExternalLink className="size-5" />
-                                        فتح العرض الحي
+                                        {isEng ? 'Open Live Demo' : 'فتح العرض الحي'}
                                     </a>
                                 </Button>
                             )}
 
                             {project.technologies && (
                                 <div>
-                                    <h3 className="mb-4 font-heading text-lg font-bold text-foreground">التقنيات المستخدمة</h3>
+                                    <h3 className="mb-4 font-heading text-lg font-bold text-foreground">
+                                        {isEng ? 'Technologies Used' : 'التقنيات المستخدمة'}
+                                    </h3>
                                     <div className="flex flex-wrap gap-2" dir="ltr">
                                         {project.technologies.split(',').map((tech, i) => (
                                             <span key={i} className="inline-flex items-center rounded-md bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
@@ -161,20 +200,52 @@ export default function Show({
                                 </div>
                             )}
 
-                            {project.members.length > 0 && (
+                            {project.members && project.members.length > 0 && (
                                 <div className="pt-2">
                                     <h3 className="mb-4 font-heading text-lg font-bold text-foreground">
-                                        فريق العمل {project.team_name ? `(${project.team_name})` : ''}
+                                        {isEng
+                                            ? `Team Members ${project.team_name ? `(${project.team_name})` : ''}`
+                                            : `فريق العمل ${project.team_name ? `(${project.team_name})` : ''}`}
                                     </h3>
                                     <ul className="space-y-4">
-                                        {project.members.map((member) => (
-                                            <li key={member.id} className="flex flex-col">
-                                                <span className="text-sm font-semibold text-foreground">{member.name}</span>
-                                                {member.role && (
-                                                    <span className="text-xs text-muted-foreground">{member.role}</span>
-                                                )}
-                                            </li>
-                                        ))}
+                                        {project.members.map((member) => {
+                                            const photo = member.photo || member.pivot?.photo;
+                                            const role = member.role || member.pivot?.role;
+                                            return (
+                                                <li key={member.id} className="flex items-center gap-3">
+                                                    {photo ? (
+                                                        <img
+                                                            src={`/storage/${photo}`}
+                                                            alt={member.name}
+                                                            className="size-11 rounded-full object-cover border border-border/80 shadow-xs shrink-0"
+                                                            onError={(e) => {
+                                                                e.currentTarget.style.display = 'none';
+                                                                const fallback = e.currentTarget.parentElement?.querySelector('.member-fallback');
+                                                                if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div
+                                                        className={cn(
+                                                            'member-fallback size-11 rounded-full bg-primary/10 border border-primary/20 items-center justify-center text-primary font-bold text-xs shrink-0',
+                                                            photo ? 'hidden' : 'flex'
+                                                        )}
+                                                    >
+                                                        {getInitials(member.name)}
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-sm font-semibold text-foreground truncate">
+                                                            {member.name}
+                                                        </span>
+                                                        {role && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {formatRole(role, isEng)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 </div>
                             )}
@@ -186,7 +257,7 @@ export default function Show({
                 <section className="mt-24 border-t border-border/70 pt-16" aria-labelledby="rating-title">
                     <div className="mx-auto max-w-3xl">
                         {flash?.success ? (
-                            <CompletionState title={flash.success} />
+                            <CompletionState title={flash.success} isEng={isEng} />
                         ) : flash?.error ? (
                             <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-5 text-center text-sm font-medium text-destructive">
                                 {flash.error}
@@ -197,7 +268,7 @@ export default function Show({
                                     id="rating-title"
                                     className="font-heading text-3xl font-bold text-background"
                                 >
-                                    قيّم هذا المشروع 
+                                    {isEng ? 'Rate this Project' : 'قيّم هذا المشروع'}
                                 </h2>
                                 
                                 <div
@@ -221,7 +292,7 @@ export default function Show({
                                                     setHoverRating(0)
                                                 }
                                                 className="rounded-full p-2 transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-background/50 focus-visible:outline-none active:scale-95"
-                                                aria-label={`تقييم ${star} من 5`}
+                                                aria-label={isEng ? `Rate ${star} of 5` : `تقييم ${star} من 5`}
                                             >
                                                 <Star
                                                     className={cn(
@@ -244,9 +315,9 @@ export default function Show({
                                     {isSubmitting ? (
                                         <Loader2 className="size-5 animate-spin text-foreground" />
                                     ) : parsedUserRating ? (
-                                        'تحديث التقييم'
+                                        isEng ? 'Update Rating' : 'تحديث التقييم'
                                     ) : (
-                                        'إرسال التقييم'
+                                        isEng ? 'Submit Rating' : 'إرسال التقييم'
                                     )}
                                 </Button>
                             </div>
@@ -258,16 +329,16 @@ export default function Show({
     );
 }
 
-function CompletionState({ title }: { title: string }) {
+function CompletionState({ title, isEng }: { title: string; isEng: boolean }) {
     return (
         <div className="rounded-2xl border border-background/10 bg-foreground p-8 text-center text-background shadow-2xl">
             <CheckCircle className="mx-auto size-12 text-background/90" />
             
             <p className="mt-2 text-sm leading-6 text-background/70">
-                شكراً لك.
+                {title || (isEng ? 'Thank you for your rating.' : 'شكراً لك.')}
             </p>
             <Button asChild variant="outline" className="mt-6 border-background/20 bg-transparent text-background hover:bg-background/10 hover:text-background">
-                <Link href={home.url()}>العودة إلى الرئيسية</Link>
+                <Link href={home.url()}>{isEng ? 'Back to Directory' : 'العودة إلى الرئيسية'}</Link>
             </Button>
         </div>
     );

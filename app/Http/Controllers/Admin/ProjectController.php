@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Member;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -111,8 +112,8 @@ class ProjectController extends Controller
 
         if (! empty($validated['members'])) {
             foreach ($validated['members'] as $index => $member) {
-                $project->members()->create([
-                    'name' => $member['name'],
+                $m = Member::firstOrCreate(['name' => $member['name']]);
+                $project->members()->attach($m->id, [
                     'role' => $member['role'] ?? null,
                     'display_order' => $index,
                 ]);
@@ -158,11 +159,11 @@ class ProjectController extends Controller
 
         $project->update(Arr::except($validated, ['members']));
 
-        $project->members()->delete();
+        $project->members()->detach();
         if (! empty($validated['members'])) {
             foreach ($validated['members'] as $index => $member) {
-                $project->members()->create([
-                    'name' => $member['name'],
+                $m = Member::firstOrCreate(['name' => $member['name']]);
+                $project->members()->attach($m->id, [
                     'role' => $member['role'] ?? null,
                     'display_order' => $index,
                 ]);
@@ -184,5 +185,28 @@ class ProjectController extends Controller
         Cache::forget("project.show.{$slug}");
 
         return redirect()->route('admin.projects.index')->with('success', 'تم حذف المشروع بنجاح');
+    }
+
+    public function printQrs(Request $request)
+    {
+        $gender = $request->query('gender', 'female');
+
+        $projects = Project::query()
+            ->when($gender === 'male', fn ($q) => $q->where('gender', 'male'))
+            ->when($gender === 'female', fn ($q) => $q->where('gender', 'female'))
+            ->orderBy('id')
+            ->get(['id', 'name', 'slug', 'gender', 'qr_code', 'qr_svg']);
+
+        $counts = [
+            'male' => Project::where('gender', 'male')->count(),
+            'female' => Project::where('gender', 'female')->count(),
+            'all' => Project::count(),
+        ];
+
+        return inertia('admin/projects/print-qrs', [
+            'projects' => $projects,
+            'currentGender' => $gender,
+            'counts' => $counts,
+        ]);
     }
 }

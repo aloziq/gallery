@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Evaluation;
 use App\Models\Project;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
@@ -16,27 +17,11 @@ class ProjectController extends Controller
     {
         // Stale-while-revalidate: fresh for 60s, serves stale up to 5 min
         // while refreshing in background — eliminates cache stampede on homepage
-        $projects = Cache::flexible('projects.index', [60, 300], function () {
+        $projects = Cache::flexible('projects.all', [60, 300], function () {
             return Project::where('is_published', true)
-                ->orderByDesc('evaluations_avg_rating')
-                ->orderByDesc('evaluations_count')
+                ->where('gender', 'female')
                 ->orderBy('display_order')
-                ->get()
-                ->toArray();
-        });
-
-        return inertia('project/index', [
-            'projects' => array_slice($projects, 0, 5),
-        ]);
-    }
-
-    public function all()
-    {
-        $projects = Cache::flexible('projects.index', [60, 300], function () {
-            return Project::where('is_published', true)
-                ->orderByDesc('evaluations_avg_rating')
-                ->orderByDesc('evaluations_count')
-                ->orderBy('display_order')
+                ->orderBy('id')
                 ->get()
                 ->toArray();
         });
@@ -46,11 +31,18 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function all()
+    {
+        return redirect()->route('home');
+    }
+
     public function show(string $slug, Request $request)
     {
         // Stale-while-revalidate: fresh for 60s, stale up to 5 min
         $project = Cache::flexible("project.show.{$slug}", [60, 300], function () use ($slug) {
-            $proj = Project::where('slug', $slug)->firstOrFail();
+            $proj = Project::where('slug', $slug)
+                ->where('gender', 'female')
+                ->firstOrFail();
             $proj->load('members');
 
             return $proj->toArray();
@@ -115,6 +107,7 @@ class ProjectController extends Controller
     public function live(Request $request)
     {
         $topProjects = Project::where('is_published', true)
+            ->where('gender', 'female')
             ->orderByDesc('evaluations_count')
             ->orderBy('display_order')
             ->limit(10)
@@ -124,7 +117,7 @@ class ProjectController extends Controller
         $top5Names = $topProjects->take(5)->pluck('name', 'id');
 
         $range = $request->query('range', '15m');
-        
+
         switch ($range) {
             case '12H':
                 $startTime = now()->subHours(12);
@@ -140,7 +133,7 @@ class ProjectController extends Controller
                 break;
             case 'All':
                 $minDate = DB::table('evaluations')->min('created_at');
-                $startTime = $minDate ? \Carbon\Carbon::parse($minDate)->startOfDay() : now()->subYears(1);
+                $startTime = $minDate ? Carbon::parse($minDate)->startOfDay() : now()->subYears(1);
                 $secondsBucket = 86400; // 1 day
                 break;
             case '1H':
@@ -189,12 +182,12 @@ class ProjectController extends Controller
         }
 
         // Align current and end times to exact bucket edges
-        $currentPeriod = \Carbon\Carbon::createFromTimestamp(floor($startTime->timestamp / $secondsBucket) * $secondsBucket);
-        $endPeriod = \Carbon\Carbon::createFromTimestamp(floor(now()->timestamp / $secondsBucket) * $secondsBucket);
+        $currentPeriod = Carbon::createFromTimestamp(floor($startTime->timestamp / $secondsBucket) * $secondsBucket);
+        $endPeriod = Carbon::createFromTimestamp(floor(now()->timestamp / $secondsBucket) * $secondsBucket);
 
         $evalsByPeriod = [];
         foreach ($evaluations as $eval) {
-            $ts = \Carbon\Carbon::parse($eval->period)->timestamp;
+            $ts = Carbon::parse($eval->period)->timestamp;
             $evalsByPeriod[$ts][$eval->project_id] = $eval->count;
         }
 

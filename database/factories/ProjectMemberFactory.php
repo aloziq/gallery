@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Member;
+use App\Models\Project;
 use App\Models\ProjectMember;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -30,7 +32,8 @@ class ProjectMemberFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'project_id' => Project::factory(),
+            'member_id' => Member::factory(),
             'role' => fake()->randomElement(self::$roles),
             'display_order' => 0,
         ];
