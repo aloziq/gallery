@@ -19,7 +19,7 @@ class GenerateProjectQrsCommand extends Command
      * @var string
      */
     protected $signature = 'projects:generate-qr
-                            {--host=http://192.168.8.15:8000 : The base host URL for project links}';
+                            {--host= : The base host URL for project links (defaults to APP_URL or https://gallery.srv1428362.hstgr.cloud)}';
 
     /**
      * The console command description.
@@ -90,7 +90,11 @@ class GenerateProjectQrsCommand extends Command
      */
     public function handle(): int
     {
-        $baseHost = rtrim($this->option('host'), '/');
+        $baseHost = rtrim(
+            $this->option('host')
+            ?: 'https://gallery.srv1428362.hstgr.cloud',
+            '/'
+        );
         $projects = Project::all();
 
         $this->info("Generating print-ready SVGs for {$projects->count()} projects using base host: {$baseHost}...");
