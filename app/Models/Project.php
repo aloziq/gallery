@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\ProjectFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -14,6 +15,34 @@ class Project extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    /**
+     * Get the project's cover image path or auto-detect from storage.
+     *
+     * @return Attribute<string|null, never>
+     */
+    protected function coverImage(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value, array $attributes): ?string {
+                if ($value) {
+                    return $value;
+                }
+                $slug = $attributes['slug'] ?? null;
+                if (! $slug) {
+                    return null;
+                }
+                foreach (['webp', 'svg', 'jpg', 'jpeg', 'png'] as $ext) {
+                    $rel = "projects/{$slug}/cover.{$ext}";
+                    if (file_exists(public_path("storage/{$rel}")) || file_exists(storage_path("app/public/{$rel}"))) {
+                        return $rel;
+                    }
+                }
+
+                return null;
+            }
+        );
+    }
 
     /**
      * @return BelongsToMany<Member, $this>
