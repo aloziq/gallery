@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Evaluation;
 use App\Models\Member;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -208,5 +210,26 @@ class ProjectController extends Controller
             'currentGender' => $gender,
             'counts' => $counts,
         ]);
+    }
+
+    public function addVotes(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'votes' => ['required', 'integer', 'min:1', 'max:500'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+        ]);
+
+        $count = (int) $validated['votes'];
+        $rating = (int) $validated['rating'];
+
+        for ($i = 0; $i < $count; $i++) {
+            Evaluation::create([
+                'project_id' => $project->id,
+                'visitor_token' => Str::uuid()->toString(),
+                'rating' => $rating,
+            ]);
+        }
+
+        return back()->with('success', "تمت إضافة {$count} صوت بنجاح للمشروع: {$project->name}");
     }
 }

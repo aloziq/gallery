@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Project Management Routes
     Route::get('projects/export', [App\Http\Controllers\Admin\ProjectController::class, 'export'])->name('admin.projects.export');
     Route::get('projects/print-qrs', [App\Http\Controllers\Admin\ProjectController::class, 'printQrs'])->name('admin.projects.print-qrs');
+    Route::post('projects/{project}/add-votes', [App\Http\Controllers\Admin\ProjectController::class, 'addVotes'])->name('admin.projects.add-votes');
     Route::resource('projects', App\Http\Controllers\Admin\ProjectController::class)->names('admin.projects');
 
     // QR Code generation route
