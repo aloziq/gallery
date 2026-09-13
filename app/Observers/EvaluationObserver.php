@@ -21,8 +21,8 @@ class EvaluationObserver
      */
     public function updated(Evaluation $evaluation): void
     {
-        // If the rating changed, update the aggregates
-        if ($evaluation->wasChanged('rating')) {
+        // If rating or weight changed, update the aggregates
+        if ($evaluation->wasChanged('rating') || $evaluation->wasChanged('weight')) {
             $this->updateProjectAggregates($evaluation->project);
         }
     }
@@ -54,16 +54,25 @@ class EvaluationObserver
     /**
      * Update the denormalized aggregates on the Project model
      * and invalidate related caches.
+     *
+     * Uses weighted average: sum(rating * weight) / sum(weight)
+     * so teacher votes (weight=3) count more than visitor votes (weight=1).
      */
     protected function updateProjectAggregates(Project $project): void
     {
+        $evaluations = $project->evaluations()->get(['rating', 'weight']);
+        $totalWeight = $evaluations->sum('weight');
+        $weightedSum = $evaluations->sum(fn (Evaluation $e): int|float => $e->rating * $e->weight);
+
         $project->update([
-            'evaluations_count' => $project->evaluations()->count(),
-            'evaluations_avg_rating' => $project->evaluations()->avg('rating') ?? 0.00,
+            'evaluations_count' => $evaluations->count(),
+            'evaluations_avg_rating' => $totalWeight > 0
+                ? round($weightedSum / $totalWeight, 2)
+                : 0.00,
         ]);
 
         // Single source of truth for cache invalidation after evaluation changes
-        Cache::forget('projects.index');
+        Cache::forget('projects.all');
         Cache::forget("project.show.{$project->slug}");
         Cache::forget('admin.dashboard.stats');
     }

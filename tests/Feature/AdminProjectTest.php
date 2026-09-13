@@ -102,8 +102,8 @@ test('authenticated users can store a project with members', function () {
     $response->assertSessionHas('success');
 
     $this->assertDatabaseHas('projects', ['slug' => 'test-project']);
-    $this->assertDatabaseHas('project_members', ['name' => 'Alice']);
-    $this->assertDatabaseHas('project_members', ['name' => 'Bob']);
+    $this->assertDatabaseHas('members', ['name' => 'Alice']);
+    $this->assertDatabaseHas('members', ['name' => 'Bob']);
 });
 
 test('store requires name and slug', function () {
@@ -134,7 +134,7 @@ test('store invalidates projects index cache', function () {
 
     // Populate the cache
     $this->get(route('home'));
-    expect(Cache::has('projects.index'))->toBeTrue();
+    expect(Cache::has('projects.all'))->toBeTrue();
 
     // Store a new project
     $this->actingAs($user)->post(route('admin.projects.store'), [
@@ -144,7 +144,7 @@ test('store invalidates projects index cache', function () {
         'display_order' => 0,
     ]);
 
-    expect(Cache::has('projects.index'))->toBeFalse();
+    expect(Cache::has('projects.all'))->toBeFalse();
 });
 
 // ────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ test('update invalidates project caches', function () {
     // Populate caches
     $this->get(route('home'));
     $this->get(route('project.show', $project->slug));
-    expect(Cache::has('projects.index'))->toBeTrue();
+    expect(Cache::has('projects.all'))->toBeTrue();
     expect(Cache::has("project.show.{$project->slug}"))->toBeTrue();
 
     // Update the project
@@ -197,7 +197,7 @@ test('update invalidates project caches', function () {
         'display_order' => 0,
     ]);
 
-    expect(Cache::has('projects.index'))->toBeFalse();
+    expect(Cache::has('projects.all'))->toBeFalse();
     expect(Cache::has("project.show.{$project->slug}"))->toBeFalse();
 });
 
@@ -259,7 +259,7 @@ test('guests cannot access print qrs page', function () {
         ->assertRedirect(route('login'));
 });
 
-test('authenticated users can view print qrs page with male projects by default', function () {
+test('authenticated users can view print qrs page with female projects by default', function () {
     $user = User::factory()->create();
     Project::factory()->create(['name' => 'Male Project', 'gender' => 'male']);
     Project::factory()->create(['name' => 'Female Project', 'gender' => 'female']);
@@ -270,9 +270,9 @@ test('authenticated users can view print qrs page with male projects by default'
     $response->assertInertia(
         fn ($page) => $page
             ->component('admin/projects/print-qrs')
-            ->where('currentGender', 'male')
+            ->where('currentGender', 'female')
             ->has('projects', 1)
-            ->where('projects.0.name', 'Male Project')
+            ->where('projects.0.name', 'Female Project')
             ->where('counts.male', 1)
             ->where('counts.female', 1)
             ->where('counts.all', 2)

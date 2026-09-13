@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\QRController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TeacherController;
+use App\Http\Middleware\EnsureUserIsTeacher;
 use App\Models\Project;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +56,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // QR Code generation route
     Route::get('projects/{project}/qr', [QRController::class, 'show'])->name('admin.projects.qr');
+});
+
+// Teacher evaluation routes
+Route::middleware(['auth', EnsureUserIsTeacher::class])->prefix('teacher')->group(function () {
+    Route::get('/', [TeacherController::class, 'index'])->name('teacher.index');
+    Route::get('/p/{slug}', [TeacherController::class, 'show'])->name('teacher.show');
+    Route::post('/p/{project:slug}/evaluate', [TeacherController::class, 'evaluate'])->name('teacher.evaluate');
 });
 
 require __DIR__.'/settings.php';

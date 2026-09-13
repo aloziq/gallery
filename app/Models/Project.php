@@ -70,4 +70,17 @@ class Project extends Model
     {
         return $this->hasMany(Evaluation::class);
     }
+
+    /**
+     * Teacher evaluations that include a written comment.
+     *
+     * @return HasMany<Evaluation, $this>
+     */
+    public function teacherComments(): HasMany
+    {
+        return $this->hasMany(Evaluation::class)
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->latest();
+    }
 }

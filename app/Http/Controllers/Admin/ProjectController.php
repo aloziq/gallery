@@ -123,6 +123,7 @@ class ProjectController extends Controller
         }
 
         Cache::forget('projects.index');
+        Cache::forget('projects.all');
 
         return redirect()->route('admin.projects.index')->with('success', 'تم إضافة المشروع بنجاح');
     }
@@ -173,6 +174,7 @@ class ProjectController extends Controller
         }
 
         Cache::forget('projects.index');
+        Cache::forget('projects.all');
         Cache::forget("project.show.{$project->slug}");
 
         return redirect()->route('admin.projects.index')->with('success', 'تم تحديث المشروع بنجاح');
@@ -184,6 +186,7 @@ class ProjectController extends Controller
         $project->delete();
 
         Cache::forget('projects.index');
+        Cache::forget('projects.all');
         Cache::forget("project.show.{$slug}");
 
         return redirect()->route('admin.projects.index')->with('success', 'تم حذف المشروع بنجاح');

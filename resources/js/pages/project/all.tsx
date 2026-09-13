@@ -15,6 +15,7 @@ interface Project {
     department?: string | null;
     short_description?: string | null;
     cover_image?: string | null;
+    gender?: 'male' | 'female' | string | null;
     evaluations_avg_rating?: string | number | null;
     evaluations_count?: number;
     team_name?: string | null;
@@ -91,6 +92,15 @@ function ProjectCard({ project, idx }: { project: Project; idx: number }) {
                                 {project.department}
                             </span>
                         )}
+                        {project.gender && (
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-md border truncate ${
+                                project.gender === 'male'
+                                    ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                                    : 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20'
+                            }`}>
+                                {project.gender === 'male' ? 'طلاب' : 'طالبات'}
+                            </span>
+                        )}
                         <span className="text-[10px] text-muted-foreground font-medium truncate">
                             {category}
                         </span>
@@ -144,6 +154,7 @@ function ProjectCard({ project, idx }: { project: Project; idx: number }) {
 
 export default function AllProjects({ projects }: { projects: Project[] }) {
     const [selectedDepartment, setSelectedDepartment] = useState('all');
+    const [selectedGender, setSelectedGender] = useState<'all' | 'male' | 'female'>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Compute counts per department dynamically
@@ -157,14 +168,27 @@ export default function AllProjects({ projects }: { projects: Project[] }) {
         return counts;
     }, [projects]);
 
-    // Filter projects by department and search term
+    // Compute counts per gender dynamically
+    const genderCounts = useMemo(() => {
+        return {
+            all: projects.length,
+            male: projects.filter((p) => p.gender === 'male').length,
+            female: projects.filter((p) => p.gender === 'female').length,
+        };
+    }, [projects]);
+
+    // Filter projects by department, gender, and search term
     const filteredProjects = useMemo(() => {
         return projects.filter((project) => {
             // 1. Department match
             const matchesDept =
                 selectedDepartment === 'all' || project.department === selectedDepartment;
 
-            // 2. Search query match
+            // 2. Gender match
+            const matchesGender =
+                selectedGender === 'all' || project.gender === selectedGender;
+
+            // 3. Search query match
             const query = searchQuery.trim().toLowerCase();
             const matchesSearch =
                 query === '' ||
@@ -173,14 +197,15 @@ export default function AllProjects({ projects }: { projects: Project[] }) {
                 (project.category && project.category.toLowerCase().includes(query)) ||
                 (project.team_name && project.team_name.toLowerCase().includes(query));
 
-            return matchesDept && matchesSearch;
+            return matchesDept && matchesGender && matchesSearch;
         });
-    }, [projects, selectedDepartment, searchQuery]);
+    }, [projects, selectedDepartment, selectedGender, searchQuery]);
 
-    const isFiltered = selectedDepartment !== 'all' || searchQuery.trim() !== '';
+    const isFiltered = selectedDepartment !== 'all' || selectedGender !== 'all' || searchQuery.trim() !== '';
 
     const resetFilters = () => {
         setSelectedDepartment('all');
+        setSelectedGender('all');
         setSearchQuery('');
     };
 
@@ -256,8 +281,39 @@ export default function AllProjects({ projects }: { projects: Project[] }) {
                 </div>
 
                 {/* Filter Navigation Bar (Clean, Uncrowded Segmented Pills) */}
-                <div className="bg-card/70 border border-border/60 rounded-2xl p-2.5 mb-8 shadow-xs backdrop-blur-xs">
-                    <div className="flex items-center justify-between gap-2 mb-2 px-1 text-xs text-muted-foreground">
+                <div className="bg-card/70 border border-border/60 rounded-2xl p-3 mb-8 shadow-xs backdrop-blur-xs space-y-3">
+                    {/* Gender Segmented Filter */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-border/40">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                            <span>عرض المشاريع حسب:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-xl border border-border/50">
+                            {[
+                                { id: 'all', label: 'جميع المشاريع', count: genderCounts.all },
+                                { id: 'male', label: 'مشاريع الطلاب (بنين)', count: genderCounts.male },
+                                { id: 'female', label: 'مشاريع الطالبات (بنات)', count: genderCounts.female },
+                            ].map((g) => {
+                                const isSelected = selectedGender === g.id;
+                                return (
+                                    <button
+                                        key={g.id}
+                                        type="button"
+                                        onClick={() => setSelectedGender(g.id as any)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                            isSelected
+                                                ? 'bg-background text-foreground shadow-xs font-bold border border-border/60'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <span>{g.label}</span>
+                                        <span className="text-[10px] font-mono opacity-70">({g.count})</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1.5 font-semibold">
                             <Filter className="w-3.5 h-3.5 text-primary" />
                             <span>الأقسام والتخصصات الأكاديمية:</span>

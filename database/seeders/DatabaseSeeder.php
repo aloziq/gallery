@@ -20,6 +20,17 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'مدير النظام',
                 'password' => bcrypt('password'),
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'teacher@gallery.test'],
+            [
+                'name' => 'هيئة التدريس',
+                'password' => bcrypt('Teacher@Gallery#2026!Px'),
+                'role' => 'teacher',
                 'email_verified_at' => now(),
             ]
         );

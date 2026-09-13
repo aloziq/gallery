@@ -19,7 +19,6 @@ class ProjectController extends Controller
         // while refreshing in background — eliminates cache stampede on homepage
         $projects = Cache::flexible('projects.all', [60, 300], function () {
             return Project::where('is_published', true)
-                ->where('gender', 'female')
                 ->orderBy('display_order')
                 ->orderBy('id')
                 ->get()
@@ -41,7 +40,6 @@ class ProjectController extends Controller
         // Stale-while-revalidate: fresh for 60s, stale up to 5 min
         $project = Cache::flexible("project.show.{$slug}", [60, 300], function () use ($slug) {
             $proj = Project::where('slug', $slug)
-                ->where('gender', 'female')
                 ->firstOrFail();
             $proj->load('members');
 
@@ -107,7 +105,6 @@ class ProjectController extends Controller
     public function live(Request $request)
     {
         $topProjects = Project::where('is_published', true)
-            ->where('gender', 'female')
             ->orderByDesc('evaluations_count')
             ->orderBy('display_order')
             ->limit(10)

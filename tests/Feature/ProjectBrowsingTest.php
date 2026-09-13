@@ -18,7 +18,7 @@ test('homepage displays published projects', function () {
     $response->assertOk();
     $response->assertInertia(
         fn ($page) => $page
-            ->component('project/index')
+            ->component('project/all')
             ->has('projects', 1)
             ->where('projects.0.id', $published->id)
     );
@@ -32,27 +32,23 @@ test('homepage hides unpublished projects', function () {
     $response->assertOk();
     $response->assertInertia(
         fn ($page) => $page
-            ->component('project/index')
+            ->component('project/all')
             ->where('projects', [])
     );
 });
 
-test('homepage orders projects by rating descending', function () {
-    $low = Project::factory()->create([
+test('homepage orders projects by display_order then id', function () {
+    $p2 = Project::factory()->create([
         'is_published' => true,
-        'evaluations_avg_rating' => 2.00,
-        'evaluations_count' => 10,
-        'display_order' => 0,
+        'display_order' => 2,
     ]);
-    $high = Project::factory()->create([
+    $p1 = Project::factory()->create([
         'is_published' => true,
-        'evaluations_avg_rating' => 4.50,
-        'evaluations_count' => 5,
-        'display_order' => 0,
+        'display_order' => 1,
     ]);
 
     // Clear cache so it doesn't interfere
-    Cache::forget('projects.index');
+    Cache::forget('projects.all');
 
     $response = $this->get(route('home'));
 
@@ -60,8 +56,8 @@ test('homepage orders projects by rating descending', function () {
     $response->assertInertia(
         fn ($page) => $page
             ->has('projects', 2)
-            ->where('projects.0.id', $high->id)
-            ->where('projects.1.id', $low->id)
+            ->where('projects.0.id', $p1->id)
+            ->where('projects.1.id', $p2->id)
     );
 });
 
@@ -72,7 +68,7 @@ test('homepage uses cache on subsequent requests', function () {
     $this->get(route('home'))->assertOk();
 
     // Verify cache key was set
-    expect(Cache::has('projects.index'))->toBeTrue();
+    expect(Cache::has('projects.all'))->toBeTrue();
 });
 
 // ────────────────────────────────────────────────────────
@@ -91,7 +87,7 @@ test('project detail page shows project with members', function () {
             ->component('project/show')
             ->where('project.id', $project->id)
             ->has('project.members', 3)
-            ->has('hasEvaluated')
+            ->has('userRating')
             ->has('visitorToken')
     );
 });
@@ -119,13 +115,14 @@ test('project detail page sets visitor cookie if not present', function () {
     $response->assertCookie('visitor_token');
 });
 
-test('project detail page shows hasEvaluated as true when visitor already rated', function () {
+test('project detail page shows userRating when visitor already rated', function () {
     $project = Project::factory()->create(['is_published' => true]);
     $token = 'test-visitor-token';
 
     Evaluation::factory()->create([
         'project_id' => $project->id,
         'visitor_token' => $token,
+        'rating' => 4,
     ]);
 
     $response = $this->withCookie('visitor_token', $token)
@@ -133,7 +130,7 @@ test('project detail page shows hasEvaluated as true when visitor already rated'
 
     $response->assertOk();
     $response->assertInertia(
-        fn ($page) => $page->where('hasEvaluated', true)
+        fn ($page) => $page->where('userRating', 4)
     );
 });
 
@@ -181,26 +178,30 @@ test('evaluation updates project aggregates via observer', function () {
     expect((float) $project->evaluations_avg_rating)->toBe(4.00);
 });
 
-test('visitor cannot rate the same project twice', function () {
+test('visitor rating the same project updates their existing rating', function () {
     $project = Project::factory()->create(['is_published' => true]);
     $token = 'test-visitor-token';
 
-    // First rating succeeds
+    // First rating
     $this->withCookie('visitor_token', $token)
         ->from(route('project.show', $project->slug))
         ->post(route('project.evaluate', $project->slug), ['rating' => 4])
         ->assertRedirect()
         ->assertSessionHas('success');
 
-    // Second rating fails
+    expect(Evaluation::where('project_id', $project->id)->count())->toBe(1);
+    expect(Evaluation::where('project_id', $project->id)->value('rating'))->toBe(4);
+
+    // Second rating updates existing evaluation
     $this->withCookie('visitor_token', $token)
         ->from(route('project.show', $project->slug))
         ->post(route('project.evaluate', $project->slug), ['rating' => 5])
         ->assertRedirect()
-        ->assertSessionHas('errors');
+        ->assertSessionHas('success');
 
-    // Only one evaluation in the database
+    // Still only one evaluation in the database, with updated rating
     expect(Evaluation::where('project_id', $project->id)->count())->toBe(1);
+    expect(Evaluation::where('project_id', $project->id)->value('rating'))->toBe(5);
 });
 
 test('evaluation requires a rating between 1 and 5', function () {
@@ -234,7 +235,7 @@ test('evaluation without visitor cookie returns error', function () {
         ]);
 
     $response->assertRedirect();
-    $response->assertSessionHas('errors');
+    $response->assertSessionHasErrors();
     expect(Evaluation::count())->toBe(0);
 });
 
@@ -259,7 +260,7 @@ test('evaluation clears project caches', function () {
     $this->get(route('home'));
     $this->withCookie('visitor_token', 'cache-test-token')
         ->get(route('project.show', $project->slug));
-    expect(Cache::has('projects.index'))->toBeTrue();
+    expect(Cache::has('projects.all'))->toBeTrue();
     expect(Cache::has("project.show.{$project->slug}"))->toBeTrue();
 
     // Submit evaluation
@@ -268,6 +269,6 @@ test('evaluation clears project caches', function () {
         ->post(route('project.evaluate', $project->slug), ['rating' => 5]);
 
     // Caches should be cleared by the observer
-    expect(Cache::has('projects.index'))->toBeFalse();
+    expect(Cache::has('projects.all'))->toBeFalse();
     expect(Cache::has("project.show.{$project->slug}"))->toBeFalse();
 });
